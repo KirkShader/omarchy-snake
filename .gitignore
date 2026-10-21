@@ -1,0 +1,42 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local credentials and authentication material
+.env
+.env.*
+.git-credentials
+auth.json
+credentials*.json
+hosts.yml
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Runtime output and local scratch data
+*.log
+*.pid
+*.tmp
+.cache/
+scratch/
+snake-preview-geometry.json
+snake-*-report.json
+
+# Recordings are backed up separately, not in the game repository
+*.mp4
+*.mkv
+*.webm
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+*~
