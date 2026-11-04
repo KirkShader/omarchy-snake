@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.kirkshader.omarchy-snake",
+  "name": "Omarchy Snake",
+  "version": "0.0001",
+  "author": "Martin Kirwin (KirkShader)",
+  "license": "MIT",
+  "description": "Bar launcher for Omarchy Snake, a native offline GTK4 game that opens in its own window.",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "Omarchy Snake",
+    "category": "Games",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

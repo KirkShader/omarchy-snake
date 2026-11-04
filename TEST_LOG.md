@@ -2,6 +2,38 @@
 
 Genuine command output, trimmed with `tail`/`grep` where noted. Command: `/usr/bin/python -m unittest ...` from repo root.
 
+## Marketplace launcher prerequisite (2026-11-04, MARKETPLACE_BRIEF.md)
+
+RED, before any plugin file existed (trimmed to the summary):
+```
+$ /usr/bin/python -m unittest tests.test_marketplace_plugin -q
+Ran 17 tests in 0.005s
+FAILED (failures=7, errors=13)
+```
+
+GREEN for the runtime and packaging classes, before the docs slice and the later `press-right` test:
+```
+$ /usr/bin/python -m unittest tests.test_marketplace_plugin.LauncherRuntimeTests tests.test_marketplace_plugin.PackagingTests -q
+Ran 13 tests in 8.267s
+OK
+```
+
+Runtime tests load the unmodified `BarWidget.qml` in Quickshell 0.3.2 (offscreen, environment built from nothing), and the real `execDetached` runs `/usr/bin/python` on a stub `grid_preview.py` in a relocated hostile path. Fault injection on scratch copies: 11 of 13 faults caught at first. The other two were each masked by the other button check, so a `triggerPress(right)` test was added; both were then caught. The real bar and a real click on the desktop were not exercised, and `qmllint` was not run.
+
+Final results, trimmed to the summary:
+```
+$ /usr/bin/python -m unittest tests.test_marketplace_plugin -q
+Ran 18 tests in 9.284s
+OK
+$ /usr/bin/python -m unittest discover -s tests -q
+Ran 236 tests in 13.852s
+OK
+```
+
+## Independent pre-publication launcher verification — 2026-11-04
+
+After the historical implementation run above, the coordinator independently ran `/usr/lib/qt6/bin/qmllint -I /usr/lib/qt6/qml BarWidget.qml` successfully (exit 0), `omarchy plugin validate .` successfully (exit 0), all 18 marketplace tests successfully, and the full 236-test suite successfully. A separate read-only reviewer also verified the validator, linter and all 236 tests and found no correctness, security or packaging blockers. The QML launch tests remain isolated offscreen tests with a mock bar and a scratch game stub, not an installation or click in the user's live bar. No game code or live desktop configuration was changed.
+
 ## Slice 0 — refactor into package + façade (behaviour-preserving)
 
 Baseline before any change and after moving code into `omarchy_snake/` (both runs, observed in session):

@@ -5,6 +5,7 @@
 - Add the MIT License, selected by the owner after the initial public release, with copyright attributed to Martin Kirwin (KirkShader).
 - Document permission for commercial use and the requirement to retain the copyright and permission notices.
 - Leave the original `v0.0001` tag and published release unchanged.
+- Add a minimal Omarchy bar launcher plugin (`io.github.kirkshader.omarchy-snake`) that opens the existing GTK game on click, as a prerequisite for marketplace submission. The game itself and its version are unchanged.
 
 ## 0.0001 — Initial Public offering
 

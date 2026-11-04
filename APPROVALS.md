@@ -1,5 +1,13 @@
 # Approval record — Omarchy Snake
 
+## Marketplace submission owner confirmation — 2026-11-04
+
+After being shown the complete submission draft, the owner explicitly approved title `[Plugin]: Omarchy Snake`, repository `KirkShader/omarchy-snake`, category `Other`, and tags `games, bar, launcher`, and confirmed all five upstream submission checklist statements, including ownership/permission and the distinction between listing approval and a security guarantee. Submit after independent launcher review passes; verify the returned issue and automated validation without claiming maintainer approval.
+
+## Approved marketplace launcher prerequisite — 2026-11-04 (MARKETPLACE_BRIEF.md)
+
+The current submission request authorizes the minimal installable bar launcher the marketplace requires for the existing GTK game: root `manifest.json`, `BarWidget.qml` and the owner's original `omarchy-snake.svg`, with tests and documentation. It launches `grid_preview.py --show-difficulty` from the plugin's own checkout on user activation only. It does not authorize gameplay changes, a QML rewrite, a new game version, a licence change, moving the `v0.0001` tag, package installs, changes to the user's bar or home configuration, or claiming a listing before human marketplace maintainers approve one.
+
 ## Approved license publication and marketplace submission — 2026-11-04
 
 The user approved a final commit/push of the MIT license and associated documentation, and requested submission to the Omarchy website's games listing. This supersedes the earlier local-only license restriction. Any marketplace listing remains subject to that site's required packaging, validation and maintainer approval; a submitted request is not a published listing. Do not move the existing `v0.0001` tag or claim approval on behalf of marketplace maintainers.
