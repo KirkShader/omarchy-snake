@@ -1,5 +1,13 @@
 # Approval record — Omarchy Snake
 
+## Approved license publication and marketplace submission — 2026-11-04
+
+The user approved a final commit/push of the MIT license and associated documentation, and requested submission to the Omarchy website's games listing. This supersedes the earlier local-only license restriction. Any marketplace listing remains subject to that site's required packaging, validation and maintainer approval; a submitted request is not a published listing. Do not move the existing `v0.0001` tag or claim approval on behalf of marketplace maintainers.
+
+## Approved license selection — 2026-11-04
+
+After the commercial-use distinction was explained, the user explicitly chose the MIT License. This supersedes the earlier noncommercial preference and authorizes adding the standard MIT text and matching documentation locally. It does not authorize a new commit, push, release update, retagging or Omarchy Hub submission.
+
 ## Approved first public source release — 2026-11-04
 
 The user approved committing and pushing the completed, play-tested game as version `0.0001`, and explicitly selected making `KirkShader/omarchy-snake` public and publishing GitHub release `v0.0001` titled `Initial Public offering`. This supersedes earlier no-commit/no-push/private-only boundaries for this release only. It includes release metadata and public download instructions; it does not authorize an Omarchy Hub submission, package installation, a software-license choice or unrelated changes.

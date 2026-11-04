@@ -23,6 +23,12 @@ Launch it with **`grid_preview.py`** (historical name, kept as the stable launch
 
 `grid_preview.py` still re-exports the older public names (`MovementPreview`, `draw_board_border`, constants) for existing tools and tests.
 
+## License
+
+Licensed under the [MIT License](LICENSE), copyright 2026 Martin Kirwin (KirkShader). You may use, modify and redistribute this project, including commercially, provided the required copyright and permission notices are retained. The software is provided without warranty; see LICENSE for the full terms.
+
+The MIT license was selected after the original `v0.0001` publication. Use the current licensed source; the original release tag has not been rewritten.
+
 ## Download and run
 
 Clone the public repository with Git:
@@ -30,10 +36,9 @@ Clone the public repository with Git:
 ```bash
 git clone https://github.com/KirkShader/omarchy-snake.git
 cd omarchy-snake
-git checkout v0.0001
 ```
 
-The tag selects this exact release. Omit the checkout command to use the latest default-branch source. Cloning this public repository does not require a GitHub account.
+These commands use the latest default-branch source. Cloning this public repository does not require a GitHub account. `git checkout v0.0001` selects the original release snapshot, which predates the added LICENSE file; use the current default branch to obtain the license alongside the source.
 
 On Omarchy/Arch Linux, the game uses these packages. If they are missing, this command installs them; review it before running:
 

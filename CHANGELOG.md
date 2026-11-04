@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add the MIT License, selected by the owner after the initial public release, with copyright attributed to Martin Kirwin (KirkShader).
+- Document permission for commercial use and the requirement to retain the copyright and permission notices.
+- Leave the original `v0.0001` tag and published release unchanged.
+
 ## 0.0001 — Initial Public offering
 
 First public source release of Omarchy Snake, a native, offline Python/GTK4 game built for Omarchy.
