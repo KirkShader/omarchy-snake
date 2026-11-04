@@ -1,5 +1,9 @@
 # Approval record — Omarchy Snake
 
+## Approved first public source release — 2026-11-04
+
+The user approved committing and pushing the completed, play-tested game as version `0.0001`, and explicitly selected making `KirkShader/omarchy-snake` public and publishing GitHub release `v0.0001` titled `Initial Public offering`. This supersedes earlier no-commit/no-push/private-only boundaries for this release only. It includes release metadata and public download instructions; it does not authorize an Omarchy Hub submission, package installation, a software-license choice or unrelated changes.
+
 ## Current working agreement
 
 The original multi-bot plan in PLAN.md is historical. The user paused that setup and subsequently approved direct, incremental development with the coordinator in this chat. The specialist profiles remain parked; their creation is not proof of working model authentication. Do not restart them, repeat logins, or change credentials without fresh permission.
@@ -32,3 +36,39 @@ The original multi-bot plan in PLAN.md is historical. The user paused that setup
 - Public publishing, distributing the project or making unrelated commits; the private backup explicitly approved above is the exception.
 
 The user requests and evaluates each slice. Stop after the current change and wait for feedback before adding another feature. Ideas in IDEAS.md are unimplemented proposals, not approval to build them.
+
+## Approved polish — 2026-10-31
+
+The user approved the joint review's recommendations as a complete polish scope (recorded in the working brief), with these explicit decisions. Where they conflict, they supersede the entries above; the history above stays as the record of earlier approvals.
+
+- **Balanced Hard:** keep 150 ms − 2.3 ms per orange, now with a **50 ms gameplay floor**. The user explicitly chose this, superseding the earlier "no 0.050-second cap" and the 1 ms technical floor. Green dots never undo speed; New Game resets to 150 ms. No separate unlimited mode.
+- **Escape** toggles a manual pause. Menu, Options, colour chooser, difficulty chooser and focus loss pause for separate reasons, and closing one never resumes another. Focus loss engages the manual pause after 0.3 s; regaining focus does not resume. No pause after loss or victory.
+- **Display fit / zoom:** cell counts and rules are unchanged; only the rendered cell size changes. Default 16 logical px, shrinking to fit the monitor. Auto fit and 50–200% zoom are available; below 6 px the board scrolls. Monitor settings are never changed. This supersedes the strictly fixed 16 px presentation.
+- **Victory state** when the snake covers every cell; the last orange scores. Distinct from Game Over.
+- **Accessibility:** readable overlay buttons under light and dark palettes; a green diamond versus an orange round dot; a more visible tail tip; Score, Length and Best in the header; rule explanations in the chooser; modal focus trap with focus return; states named in text.
+- **Two-deep safe turn queue:** supersedes the one-turn-per-tick rule; reversals and overflow are rejected.
+- **Persistence:** best score per difficulty, plus colours and zoom, in versioned XDG JSON (atomic, validated, reserved red rejected). Supersedes "session-only colours; no persistence".
+- **Engineering:** split into the `omarchy_snake` package with the `grid_preview.py` façade; optional `--verbose` / `--debug` logging that cannot stop gameplay; a single owned movement timer with no catch-up; second launch refocuses the existing window; native checks use isolated app IDs and temporary data.
+
+Still not authorized: installs, launchers, system or Hyprland setting changes, public publishing, commits or pushes without a fresh request, bots, network features, and gameplay beyond the above.
+
+## Approved revision — two-stage New Game (2026-11-01, NEW_GAME_FLOW_BRIEF.md)
+
+Supersedes only the one-click difficulty start (and the chooser's Cancel button):
+- First page: a small title and only Easy / Normal / Hard. Esc cancels, preserving the current run, loss, victory or manual pause.
+- Choosing a difficulty opens a second page with that difficulty's name and rules, plus Back and Start. It never resets, moves or rescores the run. Start alone commits and resets; Back returns to the first page.
+- Both pages keep the difficulty pause reason. Esc on details goes back first. Focus is trapped per page; Enter/Space must be released before a new page responds.
+- Menu, Paused, Game Over, Victory and `--show-difficulty` use the same flow.
+
+Not authorized by it: audio (the user only asked whether it is possible), toolbar icon changes, installs, system/global config changes, commits, pushes or data resets.
+
+## Approved audio — 2026-11-04 (AUDIO_BRIEF.md)
+
+The user approved retro arcade sounds and a quiet monophonic music loop. This supersedes the earlier exclusion of audio only; game rules, board sizing, chooser flow, pauses, scores, appearance settings and single-instance behaviour stay as they were.
+
+- Original offline synthesized cues: orange, green, new game actually starting, game over, victory. No sound on movement, previewing, Back or cancelling.
+- A quiet looping melody only during active play.
+- Options: separate Music and Sound Effects switches and a master volume, saved in the existing schema-v1 settings. Defaults: 30%, both on, music quieter than effects. Volume 0 silences both.
+- Silent gameplay, with bounded diagnostics, when audio libraries, plugins or devices are unavailable.
+
+Not authorized by it: publishing or Omarchy Hub submission (a possible future discussion only), making the repository public, commits, pushes, packaging or installing, desktop or global config changes, audio device or group changes, subprocess-per-sound playback or network use.

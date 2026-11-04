@@ -96,7 +96,9 @@ class CoreMechanicsTests(unittest.TestCase):
                                       for i in range(length - 3, length)]
                 self.assertEqual(start, (0.36, 0.68, 0.37))
                 self.assertTrue(all(a > b > c for a, b, c in zip(start, middle, tip)))
-                self.assertLess(max(tip), 0.1)
+                # Approved polish: the tip stays darkest but is no longer near-invisible.
+                self.assertLess(max(tip), max(middle))
+                self.assertGreater(max(tip), 0.2)
                 self.assertEqual(preview.segment_color(0, length), (0.65, 0.91, 0.50))
 
 

@@ -47,12 +47,20 @@ class MovementPreviewTests(unittest.TestCase):
                 self.assertEqual(motion.snake[0], head)
                 self.assertEqual(len(motion.snake), 6)
 
-    def test_reversal_and_multiple_turns_in_one_tick_are_ignored(self):
+    def test_reversal_and_queue_overflow_are_ignored(self):
+        # The approved two-deep queue supersedes the earlier one-turn-per-tick rule.
         motion = moving_snake()
         self.assertFalse(motion.request_turn('Left'))
         self.assertTrue(motion.request_turn('Up'))
-        self.assertFalse(motion.request_turn('Left'))
         self.assertFalse(motion.request_turn('Up'))
+        self.assertFalse(motion.request_turn('Down'))
+        self.assertTrue(motion.request_turn('Left'))
+        self.assertFalse(motion.request_turn('Down'))
+        motion.step()
+        self.assertEqual(motion.direction, 'Up')
+        motion.step()
+        self.assertEqual(motion.direction, 'Left')
+        motion.request_turn('Up')
         motion.step()
         self.assertEqual(motion.direction, 'Up')
         self.assertFalse(motion.request_turn('Down'))

@@ -87,14 +87,37 @@ class HardRulesTests(unittest.TestCase):
         self.assertEqual(len(game.foods), 10)
         self.assertIsNone(game.game_over_reason)
 
-    def test_acceleration_never_produces_a_zero_or_negative_step_delay(self):
+    def test_balanced_hard_keeps_linear_curve_until_the_50ms_floor(self):
+        # User-approved balance change (2026-10-31): same 2.3 ms/orange curve, 50 ms minimum.
+        self.assertEqual(preview.HARD_MIN_STEP_INTERVAL_MS, 50)
         game = preview.MovementPreview(difficulty='Hard')
-        for score, delay in [(60, 12), (64, 2.8), (65, 1), (1000000, 1)]:
+        for score, delay in [(0, 150), (10, 127), (25, 92.5), (40, 58), (43, 51.1),
+                             (44, 50), (60, 50), (65, 50), (1000000, 50)]:
             with self.subTest(score=score):
                 game.score = score
                 self.assertEqual(game.step_interval_ms, delay)
+        previous = 150
+        for score in range(0, 80):
+            game.score = score
+            self.assertLessEqual(game.step_interval_ms, previous)
+            self.assertLessEqual(previous - game.step_interval_ms, 2.3 + 1e-9)
+            previous = game.step_interval_ms
         game.reset()
         self.assertEqual(game.step_interval_ms, 150)
+
+    def test_green_does_not_undo_speed_at_the_floor(self):
+        game = preview.MovementPreview(difficulty='Hard')
+        game.score = 70
+        game.foods = set()
+        game.green_dot = (8, 8)
+        game.step()
+        self.assertEqual((game.score, len(game.snake), game.step_interval_ms), (70, 4, 50))
+
+    def test_easy_and_normal_are_unaffected_by_the_hard_floor(self):
+        for difficulty in ('Easy', 'Normal'):
+            game = preview.MovementPreview(difficulty=difficulty)
+            game.score = 200
+            self.assertEqual(game.step_interval_ms, 150)
 
     def test_easy_and_normal_keep_five_dots_fixed_speed_wrapping_and_old_collision_threshold(self):
         body = [(10, 10), (10, 11), (11, 11), (11, 10), (12, 10), (12, 11)]

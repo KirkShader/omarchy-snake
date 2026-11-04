@@ -1,166 +1,133 @@
 """Run explicitly: Hard rules through real GTK actions and GLib movement timers."""
 import json
-import os
 import random
-import subprocess
 import sys
 import time
-import traceback
 from pathlib import Path
 
-import gi
-gi.require_version('Gtk', '4.0')
-from gi.repository import GLib, Gtk
+from native_support import NativeCheck, choose_and_start, isolate_from_desktop_focus, screenshot, until
+
+from gi.repository import Gdk
+
+from gi.repository import GLib  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import grid_preview as game_module
+from omarchy_snake.rules import MovementPreview  # noqa: E402
 
-checks, failures, models, scheduled, observations = [], [], [], [], []
-BaseGame = game_module.MovementPreview
-original_action = Gtk.ApplicationWindow.add_action
-original_timeout = GLib.timeout_add
+steps = []
 
 
-class ObservedGame(BaseGame):
-    def __init__(self):
-        super().__init__(rng=random.Random(731))
-        models.append(self)
-
+class ObservedGame(MovementPreview):
     def step(self, elapsed_ms=None):
         super().step(elapsed_ms)
-        observations.append({'time': time.monotonic(), 'score': self.score,
-                             'configured_ms': self.step_interval_ms, 'elapsed_ms': elapsed_ms})
+        steps.append((time.monotonic(), self.score, self.step_interval_ms, elapsed_ms))
 
 
-def timeout(interval, function, *args, **kwargs):
-    source = original_timeout(interval, function, *args, **kwargs)
-    if function.__name__ == 'advance':
-        scheduled.append((interval, source))
-    return source
+class RecordingScheduler:
+    def __init__(self):
+        self.scheduled = []
+
+    def add(self, interval_ms, callback):
+        source = GLib.timeout_add(interval_ms, callback)
+        self.scheduled.append((interval_ms, source))
+        return source
+
+    def remove(self, source):
+        GLib.source_remove(source)
 
 
-def widgets(root):
-    yield root
-    child = root.get_first_child()
-    while child:
-        yield from widgets(child)
-        child = child.get_next_sibling()
+def factory():
+    return ObservedGame(rng=random.Random(731))
 
 
-def find(window, name):
-    matches = [w for w in widgets(window) if w.get_name() == name]
-    assert len(matches) == 1, f'{name}: expected one widget, found {len(matches)}'
-    return matches[0]
+def no_live_timers(scheduler):
+    context = GLib.MainContext.default()
+    return all(source_destroyed(context, source) for _interval, source in scheduler.scheduled)
 
 
-def guarded(window, function):
-    def callback():
-        try:
-            function()
-        except Exception:
-            failures.append(traceback.format_exc())
-            window.close()
-        return GLib.SOURCE_REMOVE
-    return callback
+def source_destroyed(context, source_id):
+    source = context.find_source_by_id(source_id)
+    return source is None or source.is_destroyed()
 
 
-def add_action(window, action):
-    original_action(window, action)
-    if action.get_name() != 'quit':
-        return
+def scenario(c, check):
+    game, w = c.game, c.widgets
+    isolate_from_desktop_focus(c)
+    recorder = RecordingScheduler()
+    c.session.scheduler = recorder
+    c.window.lookup_action('new-game').activate(None)
+    choose_and_start(c, 'Hard')
+    assert game.difficulty == 'Hard' and len(game.foods) == 10
+    assert (game.score, game.step_interval_ms) == (0, 150)
+    c.session.pause('menu')
+    game.foods = {(8, 8), (9, 8)} | {(x, 20) for x in range(20, 28)}
+    steps.clear()
+    c.session.resume('menu')
+    yield until(lambda: game.score == 2 and len(steps) >= 3, label='two oranges eaten')
+    assert game.step_interval_ms == 145.4
+    # 150 (new run), 150 (fixture pause/resume), then one reschedule per orange.
+    assert [interval for interval, _ in recorder.scheduled] == [150, 150, 148, 145], recorder.scheduled
+    context = GLib.MainContext.default()
+    live = [s for _i, s in recorder.scheduled if not source_destroyed(context, s)]
+    assert live == [recorder.scheduled[-1][1]], live
+    assert [(s[1], s[2]) for s in steps[:2]] == [(1, 147.7), (2, 145.4)]
+    assert '0.1454 sec' in w['movement-status'].get_label() and 'Solid walls' in w['movement-status'].get_label()
+    check.ok('each_orange_reschedules_one_real_timer')
 
-    def start_hard():
-        window.lookup_action('new-game').activate(None)
-        scheduled.clear()
-        observations.clear()
-        find(window, 'difficulty-hard').emit('clicked')
-        game = models[0]
-        assert game.difficulty == 'Hard' and len(game.foods) == 10
-        assert (game.score, game.step_interval_ms) == (0, 150)
-        game.foods = {(8, 8), (9, 8)} | {(x, 20) for x in range(20, 28)}
-        GLib.timeout_add(620, guarded(window, verify_acceleration))
+    # Chooser freezes the accelerated run; previewing Hard, Back and Escape keep its speed.
+    c.window.lookup_action('new-game').activate(None)
+    frozen = (game.ticks, game.green_elapsed_ms)
+    scheduled = len(recorder.scheduled)
+    w['difficulty-hard'].emit('clicked')
+    assert w['difficulty-details-page'].get_visible()
+    yield 400
+    assert (game.ticks, game.green_elapsed_ms) == frozen and c.session.timer is None
+    assert (game.score, game.step_interval_ms) == (2, 145.4)
+    w['difficulty-back'].emit('clicked')
+    assert c.on_key(None, Gdk.KEY_Escape, 0, 0) and not w['difficulty-overlay'].get_visible()
+    yield until(lambda: game.ticks > frozen[0], label='resumed')
+    assert game.step_interval_ms == 145.4 and recorder.scheduled[scheduled][0] == 145
+    check.ok('chooser_preview_back_and_escape_keep_acceleration')
 
-    def verify_acceleration():
-        game = models[0]
-        assert (game.score, game.step_interval_ms, len(game.snake), len(game.foods)) == (2, 145.4, 8, 10)
-        status = find(window, 'movement-status').get_label()
-        assert '0.1454 sec' in status and 'Solid walls' in status, status
-        assert [delay for delay, _source in scheduled] == [150, 148, 145], scheduled
-        assert len(observations) >= 3
-        assert [(o['score'], o['configured_ms']) for o in observations[:2]] == [(1, 147.7), (2, 145.4)]
-        assert (find(window, 'playing-board').get_width(), find(window, 'playing-board').get_height()) == (512, 512)
-        checks.extend(['hard_has_ten_orange_dots', 'each_orange_reschedules_real_movement_timer',
-                       'hard_status_shows_current_speed_and_solid_walls'])
-        print(json.dumps({'observed_native_steps': observations}), flush=True)
-        clients = json.loads(subprocess.check_output(['hyprctl', 'clients', '-j']))
-        client = next(c for c in clients if c.get('pid') == os.getpid())
-        x, y = client['at']
-        width, height = client['size']
-        screenshot = Path(os.environ.get('TMPDIR', str(Path.home() / '.hermes/cache/scratch'))) / 'omarchy-snake-hard.png'
-        subprocess.run(['grim', '-g', f'{x},{y} {width}x{height}', str(screenshot)], check=True)
-        print(json.dumps({'hard_screenshot': str(screenshot)}), flush=True)
-        window.lookup_action('new-game').activate(None)
-        paused = (game.ticks, game.green_elapsed_ms, game.step_interval_ms)
-        def verify_pause():
-            assert (game.ticks, game.green_elapsed_ms, game.step_interval_ms) == paused
-            checks.append('accelerated_game_and_green_cooldown_pause_in_chooser')
-            find(window, 'difficulty-cancel').emit('clicked')
-            GLib.timeout_add(200, guarded(window, lambda: verify_resume(paused[0])))
-        GLib.timeout_add(350, guarded(window, verify_pause))
+    # 50 ms floor: measure real cadence over many callbacks on a long straight path.
+    c.session.pause('menu')
+    game.score = 60
+    game.snake = [(1, 2), (1, 1), (1, 0)]
+    game.direction, game.queued_turns, game.foods, game.green_dot = 'Down', [], set(), None
+    steps.clear()
+    c.session.resume('menu')
+    yield until(lambda: len(steps) >= 21 or game.finished, timeout_ms=4000, label='twenty fast steps')
+    assert recorder.scheduled[-1][0] == 50, recorder.scheduled[-1]
+    assert game.step_interval_ms == 50
+    gaps = [(b[0] - a[0]) * 1000 for a, b in zip(steps, steps[1:])][:20]
+    mean = sum(gaps) / len(gaps)
+    check.artifacts['floor_cadence_ms'] = {'mean': round(mean, 1), 'min': round(min(gaps), 1),
+                                           'max': round(max(gaps), 1), 'samples': len(gaps)}
+    assert 45 <= mean <= 80, check.artifacts['floor_cadence_ms']
+    assert min(gaps) >= 40, check.artifacts['floor_cadence_ms']  # never faster than the floor
+    check.ok('hard_floor_real_cadence_about_50ms')
+    yield until(lambda: game.game_over, timeout_ms=4000, label='wall collision at the bottom')
+    assert game.game_over_reason == 'wall collision' and game.snake[0][1] == 31
+    assert w['game-over-overlay'].get_visible() and 'wall collision' in w['movement-status'].get_label()
+    yield 200
+    assert c.session.timer is None and no_live_timers(recorder)
+    check.ok('wall_collision_stops_all_movement_timers')
+    check.artifacts['hard_screenshot'] = screenshot('hard-game-over')
 
-    def verify_resume(ticks):
-        game = models[0]
-        assert game.ticks > ticks and game.step_interval_ms == 145.4
-        checks.append('cancel_resumes_without_resetting_acceleration')
-        game.snake = [(31, 8), (30, 8), (29, 8), (28, 8), (27, 8), (26, 8)]
-        game.foods = set()
-        game.direction = 'Right'
-        game.pending_direction = None
-        GLib.timeout_add(200, guarded(window, verify_wall_death))
-
-    def verify_stopped_timer():
-        context = GLib.MainContext.default()
-        assert all(context.find_source_by_id(source) is None for _delay, source in scheduled), scheduled
-
-    def verify_wall_death():
-        game = models[0]
-        assert game.game_over and game.game_over_reason == 'wall collision'
-        assert game.snake[0] == (31, 8)
-        assert find(window, 'game-over-overlay').get_visible()
-        assert 'wall collision' in find(window, 'movement-status').get_label()
-        verify_stopped_timer()
-        checks.append('wall_collision_shows_game_over_and_stops_movement_timer')
-        find(window, 'game-over-new-game').emit('clicked')
-        find(window, 'difficulty-hard').emit('clicked')
-        assert (game.score, game.step_interval_ms, len(game.foods)) == (0, 150, 10)
-        assert not find(window, 'game-over-overlay').get_visible()
-        checks.append('hard_restart_resets_speed_score_and_foods')
-        game.snake = [(10, 10), (10, 11), (11, 11), (11, 10), (12, 10), (12, 11)]
-        game.foods = set()
-        GLib.timeout_add(220, guarded(window, verify_short_self_collision))
-
-    def verify_short_self_collision():
-        game = models[0]
-        assert len(game.snake) == 6 and game.game_over
-        assert game.game_over_reason == 'self collision'
-        assert find(window, 'game-over-overlay').get_visible()
-        assert 'self collision' in find(window, 'movement-status').get_label()
-        verify_stopped_timer()
-        checks.append('six_square_self_collision_ends_hard_run')
-        find(window, 'game-over-new-game').emit('clicked')
-        find(window, 'difficulty-normal').emit('clicked')
-        assert len(game.foods) == 5 and game.step_interval_ms == 150
-        assert 'Edge wrap' in find(window, 'movement-status').get_label()
-        checks.append('switching_to_normal_restores_unchanged_rules')
-        window.close()
-
-    GLib.timeout_add(1000, guarded(window, start_hard))
+    w['game-over-new-game'].emit('clicked')
+    choose_and_start(c, 'Hard')
+    assert (game.score, game.step_interval_ms, len(game.foods)) == (0, 150, 10)
+    assert recorder.scheduled[-1][0] == 150
+    check.ok('restart_resets_speed_score_and_foods')
+    c.session.pause('menu')
+    game.snake = [(10, 10), (10, 11), (11, 11), (11, 10), (12, 10), (12, 11)]
+    game.direction, game.queued_turns, game.foods = 'Right', [], set()
+    c.session.resume('menu')
+    yield until(lambda: game.game_over, label='short self collision')
+    assert len(game.snake) == 6 and game.game_over_reason == 'self collision'
+    check.ok('six_square_self_collision_ends_hard_run')
+    print(json.dumps({'scheduled_intervals': [i for i, _ in recorder.scheduled]}), flush=True)
 
 
-game_module.MovementPreview = ObservedGame
-GLib.timeout_add = timeout
-Gtk.ApplicationWindow.add_action = add_action
-sys.argv = [game_module.__file__]
-game_module.main()
-print(json.dumps({'native_checks': checks, 'failures': failures}), flush=True)
-raise SystemExit(1 if failures else 0)
+if __name__ == '__main__':
+    raise SystemExit(NativeCheck('hard', [], factory).run(scenario))
